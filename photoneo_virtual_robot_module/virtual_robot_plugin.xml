@@ -1,0 +1,5 @@
+<library path="lib/libvirtual_robot_plugin">
+  <class name="pho/virtual_robot_plugin" type="pho::VIRTUAL_ROBOT" base_class_type="pho_robot_loader::RobotBase">
+    <description>This is a VIRTUAL_ROBOT comunication plugin.</description>
+  </class>
+</library>

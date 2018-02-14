@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package>
+  <name>virtual_robot</name>
+  <version>1.2.0</version>
+  <description>Photoneo support for VIRTUAL_ROBOT manipulators (metapackage).</description>
+  <author>Frantisek Durovsky</author>
+  <maintainer email="dobis@photoneo.com">Michal Dobis</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <export>
+    <metapackage/>
+  </export>
+</package>

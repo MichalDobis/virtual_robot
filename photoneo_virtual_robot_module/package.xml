@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package>
+  <name>photoneo_virtual_robot_module</name>
+  <version>1.2.0</version>
+  <description>Photoneo module for communication with Fanuc robots</description>
+  <license>BSD</license>
+
+  <author email="dobis@photoneo.com">Michal Dobis</author>
+  <maintainer email="dobis@photoneo.com">Michal Dobis</maintainer>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>pho_robot_loader</build_depend>
+  <build_depend>pho_diagnostics</build_depend>
+
+  <run_depend>pho_robot_loader</run_depend>
+  <run_depend>pho_diagnostics</run_depend>
+
+  <export>
+    <pho_robot_loader plugin="${prefix}/virtual_robot_plugin.xml" />
+  </export>
+
+</package>
