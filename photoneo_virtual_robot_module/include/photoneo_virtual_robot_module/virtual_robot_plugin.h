@@ -96,6 +96,10 @@ private:
   geometry_msgs::Pose tool_state_;
   sensor_msgs::JointState robot_state_;
 
+  bool initialized_moveit;
+
+  std::ofstream outfile_diferencial;
+
 
 
 };  // class VIRTUAL_ROBOT
