@@ -91,6 +91,8 @@ private:
 
  void create_log(std::vector<trajectory_msgs::JointTrajectoryPoint> trajectory);
 
+ uint8_t getRequest();
+
   // State listener member
   int state_listener_client_;
   geometry_msgs::Pose tool_state_;
@@ -99,6 +101,13 @@ private:
   bool initialized_moveit;
 
   std::ofstream outfile_diferencial;
+  int number_of_fails;
+  int attempt;
+
+  double cycle_time_;
+  double moving_robot_time_;
+
+ //int cycle_iterator_;
 
 
 

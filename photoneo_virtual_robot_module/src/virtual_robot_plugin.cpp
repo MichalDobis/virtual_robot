@@ -58,6 +58,13 @@ namespace pho {
         } else ROS_DEBUG("Directory created");
 
 
+        number_of_fails = 0;
+        attempt = 0;
+
+        ros::NodeHandle nh;
+        nh.param<double>("/virtual_robot/cycle_time", cycle_time_, 30);
+        nh.param<double>("/virtual_robot/moving_robot_time", moving_robot_time_, 2);
+
     }
 
     VIRTUAL_ROBOT::~VIRTUAL_ROBOT() {
@@ -76,13 +83,7 @@ namespace pho {
 
     int VIRTUAL_ROBOT::receiveRequestFromRobot() {
 
-        int request;
-        if (!initialized_moveit) {
-            request = pho_robot_loader::REQUEST::INITIALIZE;
-
-        } else {
-            request = pho_robot_loader::REQUEST::TRAJECTORY;
-        }
+        int request = getRequest();
 
         // Parse start and end poses in initialization request
         if (request == pho_robot_loader::REQUEST::INITIALIZE) {
@@ -92,7 +93,27 @@ namespace pho {
             poses_.request.startPose.position.resize(6);
             poses_.request.endPose.position.resize(6);
 
-            poses_.request.startPose.position[0] = -0.805;
+            ros::NodeHandle nh;
+
+            poses_.request.startPose.position[0] = 0.0;
+            poses_.request.startPose.position[1] = 0.0;
+            poses_.request.startPose.position[2] = 0.0;
+            poses_.request.startPose.position[3] = 0.0;
+            poses_.request.startPose.position[4] = 1.57;
+            poses_.request.startPose.position[5] = 0;
+
+            poses_.request.endPose.position[0] = 0;
+            poses_.request.endPose.position[1] = 0;
+            poses_.request.endPose.position[2] = 0;
+            poses_.request.endPose.position[3] = 0;
+            poses_.request.endPose.position[4] = 1.57;
+            poses_.request.endPose.position[5] = 0;
+
+
+            nh.getParam("/virtual_robot/start_pose", poses_.request.startPose.position);
+            nh.getParam("/virtual_robot/end_pose", poses_.request.endPose.position);
+
+            /*poses_.request.startPose.position[0] = -0.805;
             poses_.request.startPose.position[1] = -1.794;
             poses_.request.startPose.position[2] = -1.36;
             poses_.request.startPose.position[3] = -1.611;
@@ -104,7 +125,7 @@ namespace pho {
             poses_.request.endPose.position[2] = -1.36;
             poses_.request.endPose.position[3] = -1.611;
             poses_.request.endPose.position[4] = 1.57;
-            poses_.request.endPose.position[5] = -0.679;
+            poses_.request.endPose.position[5] = -0.679;*/
 
             initialized_moveit = true;
         }
@@ -120,13 +141,6 @@ namespace pho {
     int VIRTUAL_ROBOT::sendTrajectory(std::vector<trajectory_msgs::JointTrajectoryPoint> trajectory, int traj_number,
                                       bool is_fine) {
 
-        static int attempt = 0;
-        ROS_INFO("Attempt %d", attempt++);
-        if (attempt > 5000) {
-            outfile_diferencial.close();
-            ros::shutdown();
-        }
-
         if (traj_number == 2 || traj_number == 3) {
             create_log(trajectory);
         }
@@ -136,8 +150,10 @@ namespace pho {
 
     int VIRTUAL_ROBOT::sendData(int type, int number, std::vector<int> data) {
 
+
         if (type == pho_robot_loader::OPERATION::ERROR && data[0] == pho_robot_loader::ERROR::SERVICE_ERROR) {
             initialized_moveit = false;
+            ROS_INFO("Attempt %d number of fails %d", attempt, number_of_fails++);
             sleep(1);
         }
         return 1;
@@ -199,13 +215,7 @@ namespace pho {
         // tool_pose_array.clear();
 
         robot_state_.position = poses_.request.startPose.position;
-        /*robot_state_.position.resize(6);
-        robot_state_.position[0] = 0;
-        robot_state_.position[1] = 0;
-        robot_state_.position[2] = 0;
-        robot_state_.position[3] = 0;
-        robot_state_.position[4] = 1.57;
-        robot_state_.position[5] = 0;*/
+
 
         // Publish Joint States and Tool Pose on ROS topics
         joint_state_pub_.publish(robot_state_);
@@ -227,7 +237,7 @@ namespace pho {
                 if (fabs(trajectory[pointIdx].positions[j] -
                                  trajectory[pointIdx - 1].positions[j]) > limit){
                     badTrajectory = true;
-                    bad_trajectory_counter++;
+                    //bad_trajectory_counter++;
                 }
             }
         }
@@ -235,7 +245,7 @@ namespace pho {
         // Log only bad trajectory
         if (badTrajectory) {
 
-            std::ofstream outfile("/home/controller/catkin_ws/src/virtual_robot/photoneo_virtual_robot_module/log/trajectory_" + std::to_string(bad_trajectory_counter) + ".txt");
+            std::ofstream outfile("/home/controller/catkin_ws/src/virtual_robot/photoneo_virtual_robot_module/log/trajectory_" + std::to_string(bad_trajectory_counter++) + ".txt");
             for (auto point : trajectory) {
                 outfile << point.positions[0] << ", ";
                 outfile << point.positions[1] << ", ";
@@ -258,7 +268,41 @@ namespace pho {
                 outfile_diferencial << trajectory[i].positions[5] - trajectory[i - 1].positions[5] << ", ";
                 outfile_diferencial << std::endl;
             }
-    } // namespace
+
+        ROS_INFO("Attempt %d number of fails %d", attempt++, number_of_fails);
+        if (attempt > 20000) {
+            outfile_diferencial.close();
+            ros::shutdown();
+        }
+
+    }
+
+    uint8_t VIRTUAL_ROBOT::getRequest() {
+
+        uint8_t req;
+        static int cycle_iterator = 0;
+
+        if (!initialized_moveit) {
+            req = pho_robot_loader::REQUEST::INITIALIZE;
+            cycle_iterator = 0;
+
+        } else {
+            if (cycle_iterator % 2 == 0){
+
+                usleep((moving_robot_time_)*1000000);
+                req = pho_robot_loader::REQUEST::SCAN;
+
+            } else {
+
+                usleep((cycle_time_ - moving_robot_time_)*1000000);
+                req = pho_robot_loader::REQUEST::TRAJECTORY;
+
+            }
+
+            cycle_iterator++;
+        }
+        return req;
+    }
 }
 
 PLUGINLIB_EXPORT_CLASS(pho::VIRTUAL_ROBOT, pho_robot_loader::RobotBase)
